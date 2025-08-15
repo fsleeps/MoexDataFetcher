@@ -2,9 +2,12 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict
+import asyncio
+
 from database.database import get_db
 from engine.data_service import DataService
 from models.pydantic_models import StockRequest
+from database_manager import setup_database, cleanup_database
 
 # Настройка логирования
 logging.basicConfig(
@@ -13,6 +16,16 @@ logging.basicConfig(
 )
 
 app = FastAPI(title="MOEX Data Fetcher", version="1.0.0")
+
+@app.on_event("startup")
+async def startup_event():
+    """Событие запуска приложения - создаем базу данных"""
+    await setup_database()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Событие завершения приложения - удаляем базу данных"""
+    await cleanup_database()
 
 @app.get("/")
 async def root():

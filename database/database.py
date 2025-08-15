@@ -7,7 +7,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Получаем параметры подключения к базе данных из переменных окружения
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:password@localhost:5432/moex_data"
+)
 
 # Создаем асинхронный движок SQLAlchemy
 engine = create_async_engine(DATABASE_URL, echo=True)
