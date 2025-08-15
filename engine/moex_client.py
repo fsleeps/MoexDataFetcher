@@ -47,23 +47,48 @@ class MoexClient:
                     response.raise_for_status()
                     data = await response.json()
             
-            if 'candles' not in data or 'data' not in data['candles']:
+            if 'candles' not in data:
                 logger.warning(f"Нет данных для тикера {ticker}")
                 return []
             
             # Обрабатываем полученные данные
             candles_data = data['candles']['data']
+            logger.info(f"Получено {len(candles_data)} свечей для {ticker}")
+            
+            # Логируем структуру первой свечи для отладки
+            if candles_data:
+                logger.debug(f"Структура первой свечи: {candles_data[0]}")
+            
             result = []
             
             for candle in candles_data:
-                # Структура данных: [begin, open, close, high, low, value, volume]
-                candle_date = datetime.strptime(candle[0], '%Y-%m-%d').date()
-                close_price = float(candle[2])  # Цена закрытия
+                # Структура данных: [open, close, high, low, value, volume, begin, end]
+                # Обрабатываем дату - begin находится на позиции 6
+                begin_date_str = candle[6]  # "2025-08-01 00:00:00"
+                logger.debug(f"Обрабатываем дату для {ticker}: {begin_date_str} (тип: {type(begin_date_str)})")
+                
+                if isinstance(begin_date_str, str):
+                    # Парсим дату в формате "2025-08-01 00:00:00"
+                    candle_date = datetime.strptime(begin_date_str, '%Y-%m-%d %H:%M:%S').date()
+                else:
+                    # Если это timestamp, конвертируем в дату
+                    timestamp = begin_date_str
+                    logger.debug(f"Исходный timestamp: {timestamp}")
+                    
+                    if timestamp > 1000000000000:  # Если больше 13 цифр, то это миллисекунды
+                        timestamp = timestamp / 1000
+                        logger.debug(f"Конвертирован в секунды: {timestamp}")
+                    
+                    candle_date = datetime.fromtimestamp(timestamp).date()
+                    logger.debug(f"Результирующая дата: {candle_date}")
+                
+                close_price = float(candle[1])  # Цена закрытия находится на позиции 1
                 
                 result.append({
                     'date': candle_date,
                     'price': close_price
                 })
+                logger.debug(f"Обработана свеча для {ticker}: {candle_date} = {close_price}")
             
             logger.info(f"Получено {len(result)} записей для {ticker}")
             return result
