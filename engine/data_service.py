@@ -3,8 +3,6 @@ from typing import List, Dict, Optional
 from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, select
-from sqlalchemy.orm import selectinload
-
 from models.stock_data import StockData
 from .moex_client import MoexClient
 
@@ -171,20 +169,19 @@ class DataService:
             logger.info(f"Для {ticker} отсутствуют данные за {len(missing_dates)} дней")
             
             # Получаем недостающие данные с MOEX
-            if len(missing_dates) > 0:
-                min_missing_date = min(missing_dates)
-                max_missing_date = max(missing_dates)
+            min_missing_date = min(missing_dates)
+            max_missing_date = max(missing_dates)
+            
+            new_data = await self.moex_client.get_stock_data(
+                ticker, min_missing_date, max_missing_date
+            )
+            
+            if new_data:
+                # Сохраняем новые данные в кэш
+                await self.save_data_to_cache(ticker, new_data)
                 
-                new_data = await self.moex_client.get_stock_data(
-                    ticker, min_missing_date, max_missing_date
-                )
-                
-                if new_data:
-                    # Сохраняем новые данные в кэш
-                    await self.save_data_to_cache(ticker, new_data)
-                    
-                    # Добавляем новые данные к кэшированным
-                    cached_data.extend(new_data)
+                # Добавляем новые данные к кэшированным
+                cached_data.extend(new_data)
         
         # Формируем результат в нужном формате
         ticker_result = {}

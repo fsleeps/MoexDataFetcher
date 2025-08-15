@@ -1,13 +1,16 @@
+import logging
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict
-from datetime import date
-
+from typing import Dict
 from database.database import get_db
-from models.stock_data import StockData
-from engine.moex_client import MoexClient
 from engine.data_service import DataService
-from models.pydantic_models import StockRequest, StockResponse
+from models.pydantic_models import StockRequest
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI(title="MOEX Data Fetcher", version="1.0.0")
 
@@ -33,7 +36,3 @@ async def fetch_stock_data(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"} 

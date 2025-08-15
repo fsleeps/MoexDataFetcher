@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Загружаем переменные окружения
 load_dotenv()
 
-if __name__ == "__main__":
+def main():
     # Получаем настройки из переменных окружения
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
@@ -25,4 +25,7 @@ if __name__ == "__main__":
         port=port,
         reload=debug,
         log_level="info"
-    ) 
+    )
+
+if __name__ == "__main__":
+    main() 
