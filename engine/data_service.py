@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, select
@@ -39,12 +39,14 @@ class DataService:
             result = await self.db.execute(query)
             cached_data = result.scalars().all()
             
-            data_list = []
-            for record in cached_data:
-                data_list.append({
+            # Создаем новый список для каждого запроса
+            data_list = [
+                {
                     'date': record.date,
                     'price': record.price
-                })
+                }
+                for record in cached_data
+            ]
             
             logger.info(f"Найдено {len(data_list)} записей в кэше для {ticker}")
             return data_list
@@ -105,16 +107,24 @@ class DataService:
         Returns:
             Список дат, для которых нужно получить данные
         """
-        cached_dates = {item['date'] for item in cached_data}
-        missing_dates = []
+        # Создаем множество кэшированных дат для быстрого поиска
+        cached_dates: Set[date] = {item['date'] for item in cached_data}
         
-        current_date = start_date
-        while current_date <= end_date:
-            if current_date not in cached_dates:
-                missing_dates.append(current_date)
-            current_date += timedelta(days=1)
+        # Создаем новый список недостающих дат
+        missing_dates = [
+            current_date
+            for current_date in self._date_range(start_date, end_date)
+            if current_date not in cached_dates
+        ]
         
         return missing_dates
+    
+    def _date_range(self, start_date: date, end_date: date):
+        """Генератор для создания диапазона дат"""
+        current_date = start_date
+        while current_date <= end_date:
+            yield current_date
+            current_date += timedelta(days=1)
     
     async def get_stock_data(self, tickers: List[str], start_date: date, end_date: date) -> Dict[str, Dict[str, float]]:
         """
@@ -131,10 +141,10 @@ class DataService:
         result = {}
         
         # Создаем задачи для обработки всех тикеров
-        tasks = []
-        for ticker in tickers:
-            task = self._process_ticker(ticker, start_date, end_date)
-            tasks.append((ticker, task))
+        tasks = [
+            (ticker, self._process_ticker(ticker, start_date, end_date))
+            for ticker in tickers
+        ]
         
         # Выполняем все задачи параллельно
         for ticker, task in tasks:
@@ -180,12 +190,17 @@ class DataService:
                 # Сохраняем новые данные в кэш
                 await self.save_data_to_cache(ticker, new_data)
                 
-                # Добавляем новые данные к кэшированным
-                cached_data.extend(new_data)
+                # Объединяем кэшированные и новые данные
+                all_data = cached_data + new_data
+            else:
+                all_data = cached_data
+        else:
+            all_data = cached_data
         
         # Формируем результат в нужном формате
-        ticker_result = {}
-        for item in cached_data:
-            ticker_result[item['date'].strftime('%Y-%m-%d')] = item['price']
+        ticker_result = {
+            item['date'].strftime('%Y-%m-%d'): item['price']
+            for item in all_data
+        }
         
         return ticker_result 

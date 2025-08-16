@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, Date, Float, DateTime, Index
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
-from database.database import Base
+
+# Базовый класс для моделей
+Base = declarative_base()
 
 class StockData(Base):
     __tablename__ = "stock_data"

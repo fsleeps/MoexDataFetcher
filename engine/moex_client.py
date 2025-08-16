@@ -1,6 +1,6 @@
 import aiohttp
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
@@ -53,22 +53,16 @@ class MoexClient:
             candles_data = data['candles']['data']
             logger.info(f"Получено {len(candles_data)} свечей для {ticker}")
             
-
+            # Создаем новый список для каждого запроса
+            result = [
+                {
+                    'date': datetime.strptime(candle[6], '%Y-%m-%d %H:%M:%S').date(),
+                    'price': float(candle[1])  # Цена закрытия находится на позиции 1
+                }
+                for candle in candles_data
+            ]
             
-            result = []
-            
-            for candle in candles_data:
-                # Структура данных: [open, close, high, low, value, volume, begin, end]
-                begin_date_str = candle[6]  # "2025-08-01 00:00:00"
-                candle_date = datetime.strptime(begin_date_str, '%Y-%m-%d %H:%M:%S').date()
-                close_price = float(candle[1])  # Цена закрытия находится на позиции 1
-                
-                result.append({
-                    'date': candle_date,
-                    'price': close_price
-                })
-            
-            logger.info(f"Получено {len(result)} записей для {ticker}")
+            logger.info(f"Обработано {len(result)} записей для {ticker}")
             return result
             
         except aiohttp.ClientError as e:
