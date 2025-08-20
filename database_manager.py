@@ -5,14 +5,15 @@
 
 import asyncio
 import asyncpg
+import os
 
 class DatabaseManager:
-    def __init__(self, host="localhost", port=5432, user="postgres", password="password"):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.db_name = "moex_data"
+    def __init__(self, host=None, port=None, user=None, password=None):
+        self.host = host or os.environ.get("DB_HOST", "localhost")
+        self.port = port or int(os.environ.get("DB_PORT", "5432"))
+        self.user = user or os.environ.get("DB_USER", "postgres")
+        self.password = password or os.environ.get("DB_PASSWORD", "password")
+        self.db_name = os.environ.get("DB_NAME", "moex_data")
         self.connection = None
         
     async def create_database(self):
@@ -33,10 +34,11 @@ class DatabaseManager:
             await postgres_conn.execute(f"""
                 CREATE DATABASE {self.db_name} 
                 WITH 
+                TEMPLATE = template0
                 OWNER = {self.user}
                 ENCODING = 'UTF8'
-                LC_COLLATE = 'Russian_Russia.utf8'
-                LC_CTYPE = 'Russian_Russia.utf8'
+                LC_COLLATE = 'en_US.utf8'
+                LC_CTYPE = 'en_US.utf8'
                 TABLESPACE = pg_default
                 CONNECTION LIMIT = -1;
             """)

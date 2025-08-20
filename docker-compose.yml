@@ -3,7 +3,7 @@
 services:
   # PostgreSQL база данных
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     environment:
       POSTGRES_DB: moex_data
       POSTGRES_USER: postgres
@@ -23,6 +23,11 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/moex_data
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: moex_data
       HOST: 0.0.0.0
       PORT: 8000
       DEBUG: False
@@ -36,8 +41,6 @@ services:
     command: >
       sh -c "
         echo 'Waiting for database...' &&
-        echo 'Creating tables...' &&
-        python create_tables.py &&
         echo 'Starting application...' &&
         uvicorn engine.app:app --host 0.0.0.0 --port 8000
       "

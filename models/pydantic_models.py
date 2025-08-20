@@ -15,7 +15,7 @@ class StockRequest(BaseModel):
     @classmethod
     def validate_tickers(cls, v):
         """Валидация тикеров"""
-        return [ticker.upper() for ticker in v if ticker and len(ticker) <= 20]
+        return [ticker.upper() for ticker in v if (ticker) and len(ticker) <= 20]
     
     @field_validator('start_date')
     @classmethod
